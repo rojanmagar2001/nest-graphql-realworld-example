@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator nestgraphql {
+  provider           = "prisma-nestjs-graphql"
+  output             = "../src/@generated"
+  // combineScalarFilters = true
+  noAtomicOperations = true
+}
+
+model User {
+  userId           String    @id @default(cuid())
+  email            String    @unique
+  name             String    @unique
+  password         String
+  bio              String?
+  image            String?
+  following        User[]    @relation("UserFollows")
+  followers        User[]    @relation("UserFollows")
+  favoriteArticles Article[] @relation(name: "FavoritedArticles")
+  articles         Article[] @relation("ArticleAuthor")
+  comments         Comment[]
+
+  @@map("users")
+}
+
+model Tag {
+  tagId    String    @id @default(cuid())
+  name     String    @unique
+  articles Article[]
+
+  @@map("tags")
+}
+
+model Article {
+  articleId      String    @id @default(cuid())
+  slug           String    @unique
+  title          String
+  description    String
+  body           String
+  tags           Tag[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  favoritesCount Int       @default(0)
+  author         User?     @relation(name: "ArticleAuthor", fields: [authorId], references: [userId], onDelete: Cascade)
+  authorId       String?
+  favoritedBy    User[]    @relation(name: "FavoritedArticles")
+  comments       Comment[]
+
+  @@map("articles")
+}
+
+model Comment {
+  commentId String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  body      String
+  author    User     @relation(fields: [authorId], references: [userId], onDelete: Cascade)
+  authorId  String
+  article   Article? @relation(fields: [articleId], references: [articleId], onDelete: Cascade)
+  articleId String?
+
+  @@map("comments")
+}
